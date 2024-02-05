@@ -1,0 +1,85 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "nasm@latest": {
+      "last_modified": "2023-12-13T22:54:10Z",
+      "resolved": "github:NixOS/nixpkgs/fd04bea4cbf76f86f244b9e2549fca066db8ddff#nasm",
+      "source": "devbox-search",
+      "version": "2.16.01",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/sfzqh8x57z61qhmlflidxjnqy73dc46a-nasm-2.16.01"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/l6a3rh9bpnhaipyjma5d7zscy6192rq4-nasm-2.16.01"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/5mphhd0gk5mphzflrl491wil3hi08nw8-nasm-2.16.01"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/nmlxrc78byf1kddnj5pam34r74sa01mw-nasm-2.16.01"
+        }
+      }
+    },
+    "ocaml@latest": {
+      "last_modified": "2023-11-17T14:14:56Z",
+      "resolved": "github:NixOS/nixpkgs/a71323f68d4377d12c04a5410e214495ec598d4c#ocaml",
+      "source": "devbox-search",
+      "version": "4.14.1",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/mgrm4ava1sp8ascl29fa2jfyx1wvh0c9-ocaml-4.14.1"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/k4hc9lxwy9lg3ijbaq8rj6zfvss01pdr-ocaml-4.14.1"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/f9v69kbkixyvv1wg442cm6fh1b6pw5yd-ocaml-4.14.1"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/dpk6p6z5zwl1jfn7hwkgyfwaj7zdpg77-ocaml-4.14.1"
+        }
+      }
+    },
+    "opam-installer@latest": {
+      "last_modified": "2023-11-30T09:21:56Z",
+      "resolved": "github:NixOS/nixpkgs/f5c27c6136db4d76c30e533c20517df6864c46ee#opam-installer",
+      "source": "devbox-search",
+      "version": "2.1.5",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/k68jhbkhxqhj6wblc4n1nqpkin767gdh-ocaml4.14.1-opam-installer-2.1.5"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/zfcvqlkshnv8xlmfb5sgwa45p9yplpml-ocaml4.14.1-opam-installer-2.1.5"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/blrl8k37dggxdyaz14m22g49ffq1jag7-ocaml4.14.1-opam-installer-2.1.5"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/d6kz2x939ir29kc7q3vb18wb4d6sqr1s-ocaml4.14.1-opam-installer-2.1.5"
+        }
+      }
+    },
+    "opam@latest": {
+      "last_modified": "2023-11-17T14:14:56Z",
+      "resolved": "github:NixOS/nixpkgs/a71323f68d4377d12c04a5410e214495ec598d4c#opam",
+      "source": "devbox-search",
+      "version": "2.1.5",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/2nwag1grkd3xbchx9qgz4sb1ln2jmj2w-opam-2.1.5"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/rhkz6cmbqvzv92xpv777ab4s2bjf3975-opam-2.1.5"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/yi32z2pzvjypc60mpv9f4xp9irnph982-opam-2.1.5"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/sbdpaiz5l0nsv3hbl2gln73r42rggcj5-opam-2.1.5"
+        }
+      }
+    }
+  }
+}

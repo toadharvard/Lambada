@@ -1,0 +1,9 @@
+(library
+ (name ast)
+ (public_name Lambada.Ast)
+ (libraries base angstrom)
+ (instrumentation
+  (backend bisect_ppx))
+ (preprocess
+  (pps ppx_variants_conv ppx_expect ppx_inline_test ppx_deriving.show))
+ (inline_tests))

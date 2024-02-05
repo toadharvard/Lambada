@@ -1,0 +1,9 @@
+(library
+ (name interpreter)
+ (public_name Lambada.Interpreter)
+ (libraries base angstrom ast parser)
+ (instrumentation
+  (backend bisect_ppx))
+ (preprocess
+  (pps ppx_expect ppx_inline_test ppx_deriving.show))
+ (inline_tests))

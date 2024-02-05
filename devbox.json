@@ -1,0 +1,13 @@
+{
+  "packages": [
+    "ocaml@latest",
+    "opam@latest",
+    "opam-installer@latest",
+    "nasm@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "eval $(opam env)"
+    ]
+  }
+}
