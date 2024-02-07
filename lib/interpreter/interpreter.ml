@@ -100,6 +100,13 @@ let rec ao_small_step = function
     app e1' e2
 ;;
 
+let rec is_reducible_in_cbn = function
+  | Var _x -> false
+  | Abs (_x, _e) -> false
+  | App (Abs (_x, _e1), _e2) -> true
+  | App (e1, _e2) -> is_reducible_in_cbn e1
+;;
+
 let rec cbn_small_step = function
   | Var x -> var x
   | Abs (x, e) -> abs x e
@@ -109,15 +116,28 @@ let rec cbn_small_step = function
     app e1' e2
 ;;
 
+let rec is_reducible_in_nor = function
+  | Var _x -> false
+  | Abs (_x, e) -> is_reducible_in_nor e
+  | App (Abs (_x, _e), _e') -> true
+  | App (v, _e) when (not (is_reducible_in_cbn v)) && is_reducible_in_nor v -> true
+  | App (v, e) when (not (is_reducible_in_cbn v)) && not (is_reducible_in_nor v) ->
+    is_reducible_in_nor e
+  | App (e1, _e2) -> is_reducible_in_cbn e1
+;;
+
 let rec nor_small_step = function
   | Var x -> var x
   | Abs (x, e) ->
     let e' = nor_small_step e in
     abs x e'
   | App (Abs (x, e), e') -> subst (var x) e' e
-  | App (Var x, e) ->
+  | App (v, e) when (not (is_reducible_in_cbn v)) && is_reducible_in_nor v ->
+    let v' = nor_small_step v in
+    app v' e
+  | App (v, e) when (not (is_reducible_in_cbn v)) && not (is_reducible_in_nor v) ->
     let e' = nor_small_step e in
-    app (var x) e'
+    app v e'
   | App (e1, e2) ->
     let e1' = cbn_small_step e1 in
     app e1' e2
@@ -183,11 +203,20 @@ let%expect_test _ =
 let%expect_test _ =
   (* CBN завершился для Z fac 1, шаг 17, но размер -- мое почтение*)
   let term =
-    {|(((λf. ((λx. (f (λv. ((x x) v)))) (λx. (f (λv. ((x x) v)))))) (λf. (λn. (((((λn.((n (λp. (λx.(λy.y)))) (λx.(λy.x)))) n) (λp. (λs. (λz. (s z))))) (λp.(((λm. (λn. ((m ((λm. (λn. (λf. (λx. ((m f) ((n f) x)))))) n)) (λs. (λz. z))))) n) (f ((λn. (λf.( λx. (((n (λg. (λh. (h (g f))))) (λu. x)) (λu. u))))) n))))) unused)))) (λs. (λz. (s z))))  |}
+    {|(((λf. ((λx. (f (λv. ((x x) v)))) (λx. (f (λv. ((x x) v)))))) (λf. (λn. (((((λn.((n (λp. (λx.(λy.y)))) (λx.(λy.x)))) n) (λp. (λs. (λz. (s z))))) (λp.(((λm. (λn. ((m ((λm. (λn. (λf. (λx. ((m f) ((n f) x)))))) n)) (λs. (λz. z))))) n) (f ((λn. (λf.( λx. (((n (λg. (λh. (h (g f))))) (λu. x)) (λu. u))))) n))))) unused)))) (λs. (λz. (s z))))|}
   in
   iterpret cbn_small_step term 100000;
   [%expect
     {| Out: (λf.(λx.((((λv.(((λx.((λf.(λn.(((((λn.((n (λp.(λx.(λy.y)))) (λx.(λy.x)))) n) (λp.(λs.(λz.(s z))))) (λp.(((λm.(λn.((m ((λm.(λn.(λf.(λx.((m f) ((n f) x)))))) n)) (λs.(λz.z))))) n) (f ((λn.(λf.(λx.(((n (λg.(λh.(h (g f))))) (λu.x)) (λu.u))))) n))))) unused))) (λv.((x x) v)))) (λx.((λf.(λn.(((((λn.((n (λp.(λx.(λy.y)))) (λx.(λy.x)))) n) (λp.(λs.(λz.(s z))))) (λp.(((λm.(λn.((m ((λm.(λn.(λf.(λx.((m f) ((n f) x)))))) n)) (λs.(λz.z))))) n) (f ((λn.(λf.(λx.(((n (λg.(λh.(h (g f))))) (λu.x)) (λu.u))))) n))))) unused))) (λv.((x x) v))))) v)) ((λn.(λf.(λx.(((n (λg.(λh.(h (g f))))) (λu.x)) (λu.u))))) (λs.(λz.(s z))))) f) (((λs.(λz.z)) f) x)))) |}]
+;;
+
+let%expect_test _ =
+  (* NOR завершился для Z fac 1, шаг 38*)
+  let term =
+    {|(((λf. ((λx. (f (λv. ((x x) v)))) (λx. (f (λv. ((x x) v)))))) (λf. (λn. (((((λn.((n (λp. (λx.(λy.y)))) (λx.(λy.x)))) n) (λp. (λs. (λz. (s z))))) (λp.(((λm. (λn. ((m ((λm. (λn. (λf. (λx. ((m f) ((n f) x)))))) n)) (λs. (λz. z))))) n) (f ((λn. (λf.( λx. (((n (λg. (λh. (h (g f))))) (λu. x)) (λu. u))))) n))))) unused)))) (λs. (λz. (s z))))|}
+  in
+  iterpret nor_small_step term 38;
+  [%expect {| Out: (λf.(λx.(f x))) |}]
 ;;
 
 let%expect_test "cbn_ybc" =
@@ -244,4 +273,18 @@ let%expect_test "nor_ybc" =
           Out: ((λz.(z ((λt.(b t)) c))) y)
           Out: (y ((λt.(b t)) c))
           Out: (y (b c)) |}]
+;;
+
+let%expect_test _ =
+  let term = {|((u y) ((λt.(b t)) c))|} in
+  iterpret nor_small_step term 0;
+  iterpret nor_small_step term 1;
+  iterpret nor_small_step term 2;
+  iterpret nor_small_step term 3;
+  [%expect
+    {|
+          Out: ((u y) ((λt.(b t)) c))
+          Out: ((u y) (b c))
+          Out: ((u y) (b c))
+          Out: ((u y) (b c)) |}]
 ;;
