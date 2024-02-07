@@ -12,7 +12,7 @@
  (name Lambada)
  (synopsis "Step-by-step Lambda calculus interpeter")
  (description "With small-step semantic for CBV, CBN, NOR, AO strategies")
- (version 0.1.0)
+ (version 0.2.0)
  (depends
   dune
   angstrom
