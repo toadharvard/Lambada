@@ -6,6 +6,6 @@ See tests in interpreter folder for better understanding
 
 ## TODO: 
 1. REPL
-2. Less restrictive parser
+2. Reduce the number of parentheses in the output
 3. Rewrite cringy Russian comments to English
 4. ~~Dance~~
