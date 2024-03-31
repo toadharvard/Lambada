@@ -148,7 +148,7 @@ let rec apply_n_times f x n = if n <= 0 then x else apply_n_times f (f x) (n - 1
 
 let iterpret ?(show = string_of_term) strat term_string n =
   match parse parse_term term_string with
-  | Result.Error _ -> Format.printf "Can't parse expression, double check parens"
+  | Result.Error _ -> Format.printf "Can't parse expression, double check parens\n"
   | Result.Ok term -> Format.printf "Out: %s \n" (show (apply_n_times strat term n))
 ;;
 
@@ -221,9 +221,9 @@ let%expect_test _ =
 
 let%expect_test "cbn_ybc" =
   let term = {|((λx.((λz.(z x)) y)) ((λt.(b t)) c))|} in
-  iterpret cbn_small_step term 0;
-  iterpret cbn_small_step term 1;
-  iterpret cbn_small_step term 2;
+  for i = 0 to 2 do
+    iterpret cbn_small_step term i
+  done;
   iterpret cbn_big_step term 1;
   [%expect
     {|
@@ -235,10 +235,9 @@ let%expect_test "cbn_ybc" =
 
 let%expect_test "cbv_ybc" =
   let term = {|((λx.((λz.(z x)) y)) ((λt.(b t)) c))|} in
-  iterpret cbv_small_step term 0;
-  iterpret cbv_small_step term 1;
-  iterpret cbv_small_step term 2;
-  iterpret cbv_small_step term 3;
+  for i = 0 to 3 do
+    iterpret cbv_small_step term i
+  done;
   [%expect
     {|
       Out: ((λx.((λz.(z x)) y)) ((λt.(b t)) c))
@@ -249,10 +248,9 @@ let%expect_test "cbv_ybc" =
 
 let%expect_test "ao_ybc" =
   let term = {|((λx.((λz.(z x)) y)) ((λt.(b t)) c))|} in
-  iterpret ao_small_step term 0;
-  iterpret ao_small_step term 1;
-  iterpret ao_small_step term 2;
-  iterpret ao_small_step term 3;
+  for i = 0 to 3 do
+    iterpret ao_small_step term i
+  done;
   [%expect
     {|
         Out: ((λx.((λz.(z x)) y)) ((λt.(b t)) c))
@@ -263,10 +261,9 @@ let%expect_test "ao_ybc" =
 
 let%expect_test "nor_ybc" =
   let term = {|((λx.((λz.(z x)) y)) ((λt.(b t)) c))|} in
-  iterpret nor_small_step term 0;
-  iterpret nor_small_step term 1;
-  iterpret nor_small_step term 2;
-  iterpret nor_small_step term 3;
+  for i = 0 to 3 do
+    iterpret nor_small_step term i
+  done;
   [%expect
     {|
           Out: ((λx.((λz.(z x)) y)) ((λt.(b t)) c))
@@ -277,14 +274,52 @@ let%expect_test "nor_ybc" =
 
 let%expect_test _ =
   let term = {|((u y) ((λt.(b t)) c))|} in
-  iterpret nor_small_step term 0;
-  iterpret nor_small_step term 1;
-  iterpret nor_small_step term 2;
-  iterpret nor_small_step term 3;
+  for i = 0 to 1 do
+    iterpret nor_small_step term i
+  done;
+  [%expect {|
+          Out: ((u y) ((λt.(b t)) c))
+          Out: ((u y) (b c)) |}]
+;;
+
+let%expect_test _ =
+  (* pred 2 full parens *)
+  let term =
+    {|((λn. (λf.( λx. (((n (λg. (λh. (h (g f))))) (λu. x)) (λu. u))))) (λs. (λz. (s (s z)))))|}
+  in
+  for i = 0 to 9 do
+    iterpret nor_small_step term i
+  done;
   [%expect
     {|
-          Out: ((u y) ((λt.(b t)) c))
-          Out: ((u y) (b c))
-          Out: ((u y) (b c))
-          Out: ((u y) (b c)) |}]
+    Out: ((λn.(λf.(λx.(((n (λg.(λh.(h (g f))))) (λu.x)) (λu.u))))) (λs.(λz.(s (s z)))))
+    Out: (λf.(λx.((((λs.(λz.(s (s z)))) (λg.(λh.(h (g f))))) (λu.x)) (λu.u))))
+    Out: (λf.(λx.(((λz.((λg.(λh.(h (g f)))) ((λg.(λh.(h (g f)))) z))) (λu.x)) (λu.u))))
+    Out: (λf.(λx.(((λg.(λh.(h (g f)))) ((λg.(λh.(h (g f)))) (λu.x))) (λu.u))))
+    Out: (λf.(λx.((λh.(h (((λg.(λh.(h (g f)))) (λu.x)) f))) (λu.u))))
+    Out: (λf.(λx.((λu.u) (((λg.(λh.(h (g f)))) (λu.x)) f))))
+    Out: (λf.(λx.(((λg.(λh.(h (g f)))) (λu.x)) f)))
+    Out: (λf.(λx.((λh.(h ((λu.x) f))) f)))
+    Out: (λf.(λx.(f ((λu.x) f))))
+    Out: (λf.(λx.(f x))) |}]
+;;
+
+let%expect_test _ =
+  (* pred 2 little parens *)
+  let term = {|(λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) (λs.λz.s (s z))||} in
+  for i = 0 to 9 do
+    iterpret ao_small_step term i
+  done;
+  [%expect
+    {|
+    Out: ((λn.(λf.(λx.(((n (λg.(λh.(h (g f))))) (λu.x)) (λu.u))))) (λs.(λz.(s (s z)))))
+    Out: (λf.(λx.((((λs.(λz.(s (s z)))) (λg.(λh.(h (g f))))) (λu.x)) (λu.u))))
+    Out: (λf.(λx.(((λz.((λg.(λh.(h (g f)))) ((λg.(λh.(h (g f)))) z))) (λu.x)) (λu.u))))
+    Out: (λf.(λx.(((λg.(λh.(h (g f)))) ((λg.(λh.(h (g f)))) (λu.x))) (λu.u))))
+    Out: (λf.(λx.(((λg.(λh.(h (g f)))) (λh.(h ((λu.x) f)))) (λu.u))))
+    Out: (λf.(λx.(((λg.(λh.(h (g f)))) (λh.(h x))) (λu.u))))
+    Out: (λf.(λx.((λh.(h ((λh.(h x)) f))) (λu.u))))
+    Out: (λf.(λx.((λu.u) ((λh.(h x)) f))))
+    Out: (λf.(λx.((λu.u) (f x))))
+    Out: (λf.(λx.(f x))) |}]
 ;;
