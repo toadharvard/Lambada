@@ -91,13 +91,16 @@ let rec ao_small_step = function
   | Abs (x, e) ->
     let e' = ao_small_step e in
     abs x e'
-  | App (Abs (x, e), v) when not (is_reducible_in_ao v) -> subst (var x) v e
-  | App (v, e) when not (is_reducible_in_ao v) ->
-    let e' = ao_small_step e in
-    app v e'
-  | App (e1, e2) ->
+  | App (Abs (x, e1), e2)
+    when (not (is_reducible_in_ao e1)) && not (is_reducible_in_ao e2) ->
+    subst (var x) e2 e1
+  | App (e1, e2) when is_reducible_in_ao e1 ->
     let e1' = ao_small_step e1 in
     app e1' e2
+  | App (e1, e2) when (not (is_reducible_in_ao e1)) && is_reducible_in_ao e2 ->
+    let e2' = ao_small_step e2 in
+    app e1 e2'
+  | App (e1, e2) -> app e1 e2
 ;;
 
 let rec is_reducible_in_cbn = function
@@ -174,6 +177,32 @@ let%expect_test _ =
   in
   iterpret cbv_small_step term 34;
   [%expect {| Out: (λf.(λx.(((λs.(λz.(s z))) f) (((λs.(λz.z)) f) x)))) |}]
+;;
+
+(* (λs. (λx. (s (s x))))
+   (λw. (λy. (λx. (y (w y x))))) *)
+
+let%expect_test _ =
+  (* Досчитаем в AO*)
+  let term =
+    {|(λs. (λx. (s (s x))))(λw. (λy. (λx. (y (w y x)))))(λs. (λx. (s (s x))))|}
+  in
+  for i = 0 to 10 do
+    iterpret ao_small_step term i
+  done;
+  [%expect
+    {|
+        Out: (((λs.(λx.(s (s x)))) (λw.(λy.(λx.(y ((w y) x)))))) (λs.(λx.(s (s x)))))
+        Out: ((λx.((λw.(λy.(λx.(y ((w y) x))))) ((λw.(λy.(λx.(y ((w y) x))))) x))) (λs.(λx.(s (s x)))))
+        Out: ((λx.((λw.(λy.(λx.(y ((w y) x))))) (λy.(λw'.(y ((x y) w')))))) (λs.(λx.(s (s x)))))
+        Out: ((λx.(λy.(λw'.(y (((λy.(λw'.(y ((x y) w')))) y) w'))))) (λs.(λx.(s (s x)))))
+        Out: ((λx.(λy.(λw'.(y ((λw'.(y ((x y) w'))) w'))))) (λs.(λx.(s (s x)))))
+        Out: ((λx.(λy.(λw'.(y (y ((x y) w')))))) (λs.(λx.(s (s x)))))
+        Out: (λy.(λw'.(y (y (((λs.(λx.(s (s x)))) y) w')))))
+        Out: (λy.(λw'.(y (y ((λx.(y (y x))) w')))))
+        Out: (λy.(λw'.(y (y (y (y w'))))))
+        Out: (λy.(λw'.(y (y (y (y w'))))))
+        Out: (λy.(λw'.(y (y (y (y w')))))) |}]
 ;;
 
 let%expect_test _ =
@@ -315,11 +344,11 @@ let%expect_test _ =
     Out: ((λn.(λf.(λx.(((n (λg.(λh.(h (g f))))) (λu.x)) (λu.u))))) (λs.(λz.(s (s z)))))
     Out: (λf.(λx.((((λs.(λz.(s (s z)))) (λg.(λh.(h (g f))))) (λu.x)) (λu.u))))
     Out: (λf.(λx.(((λz.((λg.(λh.(h (g f)))) ((λg.(λh.(h (g f)))) z))) (λu.x)) (λu.u))))
-    Out: (λf.(λx.(((λg.(λh.(h (g f)))) ((λg.(λh.(h (g f)))) (λu.x))) (λu.u))))
-    Out: (λf.(λx.(((λg.(λh.(h (g f)))) (λh.(h ((λu.x) f)))) (λu.u))))
-    Out: (λf.(λx.(((λg.(λh.(h (g f)))) (λh.(h x))) (λu.u))))
-    Out: (λf.(λx.((λh.(h ((λh.(h x)) f))) (λu.u))))
-    Out: (λf.(λx.((λu.u) ((λh.(h x)) f))))
+    Out: (λf.(λx.(((λz.((λg.(λh.(h (g f)))) (λh.(h (z f))))) (λu.x)) (λu.u))))
+    Out: (λf.(λx.(((λz.(λh.(h ((λh.(h (z f))) f)))) (λu.x)) (λu.u))))
+    Out: (λf.(λx.(((λz.(λh.(h (f (z f))))) (λu.x)) (λu.u))))
+    Out: (λf.(λx.((λh.(h (f ((λu.x) f)))) (λu.u))))
+    Out: (λf.(λx.((λh.(h (f x))) (λu.u))))
     Out: (λf.(λx.((λu.u) (f x))))
     Out: (λf.(λx.(f x))) |}]
 ;;
