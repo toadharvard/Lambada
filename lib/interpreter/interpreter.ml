@@ -36,7 +36,7 @@ let rec subst var_to_replace repacement term =
   (* [x -> N] (λx. P) = (λx. P) *)
   | Var x, n, Abs (y, p) when (not (String.equal x y)) && is_free y n ->
     let free_vars = StringSet.union (get_free_vars n) (get_free_vars p) in
-    let z = next_name x free_vars in
+    let z = next_name y free_vars in
     abs z (subst (Var x) n (subst (Var y) (Var z) p))
   (* [x -> N] (λx. P) = (λz. [x -> N] ([y -> z] P)) if y in FV(N) *)
   | Var x, n, Abs (y, p) when (not (String.equal x y)) && not (is_free y n) ->
@@ -194,15 +194,15 @@ let%expect_test _ =
     {|
         Out: (((λs.(λx.(s (s x)))) (λw.(λy.(λx.(y ((w y) x)))))) (λs.(λx.(s (s x)))))
         Out: ((λx.((λw.(λy.(λx.(y ((w y) x))))) ((λw.(λy.(λx.(y ((w y) x))))) x))) (λs.(λx.(s (s x)))))
-        Out: ((λx.((λw.(λy.(λx.(y ((w y) x))))) (λy.(λw'.(y ((x y) w')))))) (λs.(λx.(s (s x)))))
-        Out: ((λx.(λy.(λw'.(y (((λy.(λw'.(y ((x y) w')))) y) w'))))) (λs.(λx.(s (s x)))))
-        Out: ((λx.(λy.(λw'.(y ((λw'.(y ((x y) w'))) w'))))) (λs.(λx.(s (s x)))))
-        Out: ((λx.(λy.(λw'.(y (y ((x y) w')))))) (λs.(λx.(s (s x)))))
-        Out: (λy.(λw'.(y (y (((λs.(λx.(s (s x)))) y) w')))))
-        Out: (λy.(λw'.(y (y ((λx.(y (y x))) w')))))
-        Out: (λy.(λw'.(y (y (y (y w'))))))
-        Out: (λy.(λw'.(y (y (y (y w'))))))
-        Out: (λy.(λw'.(y (y (y (y w')))))) |}]
+        Out: ((λx.((λw.(λy.(λx.(y ((w y) x))))) (λy.(λx'.(y ((x y) x')))))) (λs.(λx.(s (s x)))))
+        Out: ((λx.(λy.(λx'.(y (((λy.(λx'.(y ((x y) x')))) y) x'))))) (λs.(λx.(s (s x)))))
+        Out: ((λx.(λy.(λx'.(y ((λx'.(y ((x y) x'))) x'))))) (λs.(λx.(s (s x)))))
+        Out: ((λx.(λy.(λx'.(y (y ((x y) x')))))) (λs.(λx.(s (s x)))))
+        Out: (λy.(λx'.(y (y (((λs.(λx.(s (s x)))) y) x')))))
+        Out: (λy.(λx'.(y (y ((λx.(y (y x))) x')))))
+        Out: (λy.(λx'.(y (y (y (y x'))))))
+        Out: (λy.(λx'.(y (y (y (y x'))))))
+        Out: (λy.(λx'.(y (y (y (y x')))))) |}]
 ;;
 
 let%expect_test _ =
@@ -351,4 +351,12 @@ let%expect_test _ =
     Out: (λf.(λx.((λh.(h (f x))) (λu.u))))
     Out: (λf.(λx.((λu.u) (f x))))
     Out: (λf.(λx.(f x))) |}]
+;;
+
+let%expect_test "test" =
+  let term =
+    {|  (  (λp.((λx.λy.λf.f x y) (λz.s z) (((λp.p (λx.λy.x)) p) ((λp.p (λx.λy.y)) p)))) ((λx.λy.λf.f x y) (λi.i) x)) |}
+  in
+  iterpret ao_small_step term 52;
+  [%expect {| Out: (λf.((f (λz.(s z))) x)) |}]
 ;;
