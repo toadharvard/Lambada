@@ -1,0 +1,6 @@
+(tests
+ (names regression differential)
+ (libraries ast parser interpreter))
+
+(cram
+ (deps %{bin:lambada}))

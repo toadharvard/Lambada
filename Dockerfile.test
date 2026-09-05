@@ -1,0 +1,10 @@
+FROM ocaml/opam:ubuntu-24.04-ocaml-5.2@sha256:7ad53a05e219bad7afbf5c48523a1fc46d0d63774e28d7de6d7513f6184ceed6
+WORKDIR /home/opam/project
+COPY --chown=opam:opam dune-project Lambada.opam ./
+RUN opam install . --deps-only --with-test -y --jobs=4
+COPY --chown=opam:opam dune ./
+COPY --chown=opam:opam lib ./lib
+COPY --chown=opam:opam test ./test
+COPY --chown=opam:opam bin ./bin
+RUN opam exec -- dune build @all
+CMD ["opam", "exec", "--", "dune", "runtest", "--force"]

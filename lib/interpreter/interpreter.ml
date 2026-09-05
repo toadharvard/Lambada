@@ -34,6 +34,8 @@ let rec subst var_to_replace repacement term =
   (* [x -> N] (P Q) = ([x -> N] P)([x -> N] Q) *)
   | Var x, _n, Abs (x', p) when String.equal x x' -> abs x' p
   (* [x -> N] (λx. P) = (λx. P) *)
+  | Var x, _n, Abs (y, p) when not (is_free x p) -> abs y p
+  (* No substitution is needed; renaming here can introduce the target name. *)
   | Var x, n, Abs (y, p) when (not (String.equal x y)) && is_free y n ->
     let free_vars = StringSet.union (get_free_vars n) (get_free_vars p) in
     let z = next_name y free_vars in
@@ -156,13 +158,13 @@ let iterpret ?(show = string_of_term) strat term_string n =
 ;;
 
 let%expect_test _ =
-  (* (λx.(λy.y))Ω cbv -> расходится*)
+  (* CBV diverges on (λx.λy.y) Ω. *)
   iterpret cbv_small_step {|((λx.(λy.y)) ((λx.(x x)) (λy.(y y))))|} 1;
   [%expect {| Out: ((λx.(λy.y)) ((λy.(y y)) (λy.(y y)))) |}]
 ;;
 
 let%expect_test _ =
-  (* CBV почти завершился для Z fac 1, шаг 33*)
+  (* CBV is one step from finishing Z factorial 1, after step 33. *)
   let term =
     {|(((λf. ((λx. (f (λv. ((x x) v)))) (λx. (f (λv. ((x x) v)))))) (λf. (λn. (((((λn.((n (λp. (λx.(λy.y)))) (λx.(λy.x)))) n) (λp. (λs. (λz. (s z))))) (λp.(((λm. (λn. ((m ((λm. (λn. (λf. (λx. ((m f) ((n f) x)))))) n)) (λs. (λz. z))))) n) (f ((λn. (λf.( λx. (((n (λg. (λh. (h (g f))))) (λu. x)) (λu. u))))) n))))) unused)))) (λs. (λz. (s z))))  |}
   in
@@ -171,7 +173,7 @@ let%expect_test _ =
 ;;
 
 let%expect_test _ =
-  (* CBV завершился для Z fac 1, шаг 34*)
+  (* CBV finishes Z factorial 1 at step 34. *)
   let term =
     {|(((λf. ((λx. (f (λv. ((x x) v)))) (λx. (f (λv. ((x x) v)))))) (λf. (λn. (((((λn.((n (λp. (λx.(λy.y)))) (λx.(λy.x)))) n) (λp. (λs. (λz. (s z))))) (λp.(((λm. (λn. ((m ((λm. (λn. (λf. (λx. ((m f) ((n f) x)))))) n)) (λs. (λz. z))))) n) (f ((λn. (λf.( λx. (((n (λg. (λh. (h (g f))))) (λu. x)) (λu. u))))) n))))) unused)))) (λs. (λz. (s z))))  |}
   in
@@ -183,7 +185,7 @@ let%expect_test _ =
    (λw. (λy. (λx. (y (w y x))))) *)
 
 let%expect_test _ =
-  (* Досчитаем в AO*)
+  (* Continue normalization with applicative order. *)
   let term =
     {|(λs. (λx. (s (s x))))(λw. (λy. (λx. (y (w y x)))))(λs. (λx. (s (s x))))|}
   in
@@ -206,15 +208,16 @@ let%expect_test _ =
 ;;
 
 let%expect_test _ =
-  (* Досчитаем в AO*)
+  (* Normalize the remaining lambda body with applicative order. *)
   let term = {|(λf.(λx.(((λs.(λz.(s z))) f) (((λs.(λz.z)) f) x))))|} in
   iterpret ao_small_step term 100;
-  [%expect {|
+  [%expect
+    {|
         Out: (λf.(λx.(f x))) |}]
 ;;
 
 let%expect_test _ =
-  (* AO расходится *)
+  (* Applicative order diverges on this fixed-point expression. *)
   let term =
     {|(((λf. ((λx. (f (λv. ((x x) v)))) (λx. (f (λv. ((x x) v)))))) (λf. (λn. (((((λn.((n (λp. (λx.(λy.y)))) (λx.(λy.x)))) n) (λp. (λs. (λz. (s z))))) (λp.(((λm. (λn. ((m ((λm. (λn. (λf. (λx. ((m f) ((n f) x)))))) n)) (λs. (λz. z))))) n) (f ((λn. (λf.( λx. (((n (λg. (λh. (h (g f))))) (λu. x)) (λu. u))))) n))))) unused)))) (λs. (λz. (s z))))  |}
   in
@@ -230,7 +233,7 @@ let%expect_test _ =
 ;;
 
 let%expect_test _ =
-  (* CBN завершился для Z fac 1, шаг 17, но размер -- мое почтение*)
+  (* CBN finishes Z factorial 1 at step 17, leaving a large unevaluated body. *)
   let term =
     {|(((λf. ((λx. (f (λv. ((x x) v)))) (λx. (f (λv. ((x x) v)))))) (λf. (λn. (((((λn.((n (λp. (λx.(λy.y)))) (λx.(λy.x)))) n) (λp. (λs. (λz. (s z))))) (λp.(((λm. (λn. ((m ((λm. (λn. (λf. (λx. ((m f) ((n f) x)))))) n)) (λs. (λz. z))))) n) (f ((λn. (λf.( λx. (((n (λg. (λh. (h (g f))))) (λu. x)) (λu. u))))) n))))) unused)))) (λs. (λz. (s z))))|}
   in
@@ -240,7 +243,7 @@ let%expect_test _ =
 ;;
 
 let%expect_test _ =
-  (* NOR завершился для Z fac 1, шаг 38*)
+  (* Normal order finishes Z factorial 1 at step 38. *)
   let term =
     {|(((λf. ((λx. (f (λv. ((x x) v)))) (λx. (f (λv. ((x x) v)))))) (λf. (λn. (((((λn.((n (λp. (λx.(λy.y)))) (λx.(λy.x)))) n) (λp. (λs. (λz. (s z))))) (λp.(((λm. (λn. ((m ((λm. (λn. (λf. (λx. ((m f) ((n f) x)))))) n)) (λs. (λz. z))))) n) (f ((λn. (λf.( λx. (((n (λg. (λh. (h (g f))))) (λu. x)) (λu. u))))) n))))) unused)))) (λs. (λz. (s z))))|}
   in
@@ -306,7 +309,8 @@ let%expect_test _ =
   for i = 0 to 1 do
     iterpret nor_small_step term i
   done;
-  [%expect {|
+  [%expect
+    {|
           Out: ((u y) ((λt.(b t)) c))
           Out: ((u y) (b c)) |}]
 ;;
@@ -335,7 +339,7 @@ let%expect_test _ =
 
 let%expect_test _ =
   (* pred 2 little parens *)
-  let term = {|(λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) (λs.λz.s (s z))||} in
+  let term = {|(λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) (λs.λz.s (s z))|} in
   for i = 0 to 9 do
     iterpret ao_small_step term i
   done;

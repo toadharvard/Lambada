@@ -17,9 +17,12 @@ let rparen p = p <* ws <* char ')'
 let parens p = char '(' *> ws *> p <* ws <* char ')'
 
 let parse_string =
-  take_while1 (function
-    | 'a' .. 'z' | 'A' .. 'Z' -> true
-    | _ -> false)
+  lift2
+    ( ^ )
+    (take_while1 (function
+       | 'a' .. 'z' | 'A' .. 'Z' -> true
+       | _ -> false))
+    (take_while (Char.equal '\''))
 ;;
 
 let lambda_sym = string "\\" <|> string "λ"
@@ -29,21 +32,16 @@ let parse_term =
   @@ fun self ->
   let parse_var = parse_string >>| var in
   let parse_abs =
-    fix
-    @@ fun parse_abs ->
-    lift2 abs (lambda_sym *> ws *> parse_string) (char '.' *> ws *> (parse_abs <|> self))
+    lift2 abs (lambda_sym *> ws *> parse_string <* ws <* char '.') (ws *> self)
   in
+  let atom = parens self <|> parse_var in
   let parse_app =
-    lift2 app (lparen self) (ws *> rparen self)
-    <|> (sep_by1 ws (choice [ parens parse_abs; parens self; parse_var ])
-         >>= function
-         | x :: xs -> return @@ List.fold_left ~f:app ~init:x xs
-         | _ -> fail "Impossible state")
+    lift2 (fun x xs -> List.fold_left ~f:app ~init:x xs) atom (many (ws *> atom))
   in
-  parse_app
+  parse_abs <|> parse_app
 ;;
 
-let parse parser str = Angstrom.parse_string ~consume:Consume.Prefix parser str
+let parse parser str = Angstrom.parse_string ~consume:Consume.All (ws *> parser <* ws) str
 
 let parse_show parser show str =
   match parse parser str with

@@ -2,6 +2,8 @@
 
 (generate_opam_files true)
 
+(cram enable)
+
 (license MIT)
 
 (authors "Vadim Yakshigulov <vadim.iakshigulov@gmail.com>")
